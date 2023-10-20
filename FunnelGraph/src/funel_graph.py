@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import PathPatch
 
 from src.interpolating_function import inter_poly
+from src.text.text import label_stage
 from src.gradient import gradient_image, cmaps_dict
 
 class FunelGraph():
@@ -40,11 +41,23 @@ class FunelGraph():
     
     def data_for_labels(self):
 
-        self.label_text_kwargs = dict(fontsize=15, color='C1')
-        self.number_text_kwargs = dict(fontsize=15, color='w')
-
         arr:np.ndarray = self.data_dict['values']
         self.sums_of_stages = np.sum(a=arr, axis=0)
+        self.first_column = arr[:,0]
+
+        # perentage of previous stage
+        arr = arr.astype(np.float64)
+        next_arr = arr[:,1:]
+        curr_arr_recip = np.reciprocal(arr[:,:-1], where= arr[:,:-1]!=0)
+        self.pcent_of_previous_stage = (
+            np.multiply(next_arr, curr_arr_recip)[:,:-1]*100
+            ).astype(np.int8)
+
+        
+        # numbers for stage 0.
+         
+        # percentages for text in stage 1,2, ...
+
  
     def data_normalisation(self):
         """ Creates guide for patches from self.data_dict['values'].
@@ -114,8 +127,17 @@ class FunelGraph():
         self.load_data()
         self.data_normalisation()
         self.create_paths()
+        self.data_for_labels()
 
-    def set_colors(self, colors=['autumn', 'copper', 'viridis', 'Oranges']):
+    def set_colors( self, 
+                    colors=[
+                        ['#C33764', '#1BFFFF'],
+                        ['#FBB03B', '#D4145A'],
+                        ['#FCEE21', '#009245'],
+                        ['#1BFFFF', '#2E3192'],
+                        ['#009245', '#FCEE21']
+                    ]
+        ):
         """ Argument colors is a list with elements of the form:
                 - single string with color in hex or colorname eg:
                     '#393862', 'blue', or 'y'.
@@ -126,9 +148,8 @@ class FunelGraph():
                 List of colors are passed to mpl.colors.LinearSegmentedColormap
                 to create colormap.
             """
+        
         self.cmaps_for_patches = []
-        if self.data_dict['colors'] is not None:
-            colors = self.data_dict['colors']
             
         for i ,color in enumerate(colors):
             if color in self.names_mpl_cmaps or (
@@ -144,6 +165,7 @@ class FunelGraph():
                     mpl.colors.LinearSegmentedColormap.from_list(
                         'color_patch'+str(i), [color, color], N=256, gamma=1.0)
                 )
+        self.data_dict['colors'] = self.cmaps_for_patches
         self.cmaps_len = len(self.cmaps_for_patches)
 
     def draw(self, background_color:str='#393862', **kwargs):
@@ -156,27 +178,34 @@ class FunelGraph():
         fig, ax = plt.subplots()
         ax.set(xlim=(0, stages-1), ylim=(-0.05, 1.50))
 
-        # vertival guides
+        # vertical guides
         ax.vlines(np.arange(stages), -2, 2, colors='w', lw=0.5)
         
         # the texts
-        for stage in range(stages-1):
-            # ax.text(stage+0.5, 1.4, self.data_dict['labels'][stage], **self.label_text_kwargs)
+        # for stage in range(stages-1):
+        #     # ax.text(stage+0.5, 1.4, self.data_dict['labels'][stage], **self.label_text_kwargs)
             
-            left = stage + 0.05
-            top_for_name = 1.5 - 0.05
-            ax.text(left, top_for_name, 
-                    self.data_dict['labels'][stage],
-                    horizontalalignment='left',
-                    verticalalignment='top',
-                    **self.label_text_kwargs)
+        #     left = stage + 0.05
+        #     top_for_name = 1.5 - 0.05
+        #     ax.text(left, top_for_name, 
+        #             self.data_dict['labels'][stage],
+        #             horizontalalignment='left',
+        #             verticalalignment='top',
+        #             **self.label_text_kwargs)
             
-            top_for_numbers = 1.4 - 0.1
-            ax.text(left, top_for_numbers, 
-                    str(self.sums_of_stages[stage]),
-                    horizontalalignment='left',
-                    verticalalignment='top',
-                    **self.number_text_kwargs)
+        #     top_for_numbers = 1.4 - 0.1
+        #     ax.text(left, top_for_numbers, 
+        #             str(self.sums_of_stages[stage]),
+        #             horizontalalignment='left',
+        #             verticalalignment='top',
+        #             **self.number_text_kwargs)
+
+        # the texts:
+        for stage, name in enumerate(self.data_dict['labels'][:-1]):
+            if stage == 0:
+                label_stage(ax, stage, name, self.first_column, self.data_dict['colors'] )
+            elif stage != 0:
+                label_stage(ax, stage, name, self.pcent_of_previous_stage[:,stage-1], self.data_dict['colors'])
 
         ax.set_facecolor(background_color)
         # ax.get_xaxis().set_visible(False)
