@@ -6,7 +6,8 @@ from src.text.config import text_stage_kwargs, text_nums_kwargs
 from src.pic_config.config import pic_global
 
 def label_stage(ax: plt.Axes, stage:int, label:str, number_column:np.ndarray, cmap_list:list):
-    """ Function to add text to stage example for jupyter:
+    """ Function puts labels and numbers to the stage,
+        example of early stage of label_stage:
 
         import matplotlib.pyplot as plt
         from matplotlib.patches import Rectangle
