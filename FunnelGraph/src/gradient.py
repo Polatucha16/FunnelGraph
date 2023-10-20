@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 # gradient drawing function from matplotlib examples:
 # https://matplotlib.org/stable/gallery/lines_bars_and_markers/gradient_bar.html
-def gradient_image(ax: plt.Axes, direction=0.5, **kwargs): #cmap_range=(0, 1)
+def gradient_image(ax: plt.Axes, direction=0.5, cmap_range=(0, 1),**kwargs):
     """
     Draw a gradient image based on a colormap.
 
