@@ -22,6 +22,7 @@ class FunelGraph():
                 }
         self.pts = pts
         self.names_mpl_cmaps = [item for row in cmaps_dict.values() for item in row]
+        # whadda You Know there is a list of known colormap names: matplotlib.colormaps()
             
     def load_data(self, file_name:str='data.csv'):
         self.root = Path(__file__).parents[1]

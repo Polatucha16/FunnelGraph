@@ -39,7 +39,7 @@ def label_stage(
     cmap_arg: float,
 ):
     """Function puts labels and numbers to the stage,
-    cell example using label_stage:
+    cell example:
 
         import numpy as np
         import matplotlib.pyplot as plt
