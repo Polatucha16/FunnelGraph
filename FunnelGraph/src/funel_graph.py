@@ -9,6 +9,7 @@ from matplotlib.patches import PathPatch
 
 from src.interpolating_function import inter_poly
 from src.text.text import label_stage
+from src.text.text import JustNumbers, WithPercent
 from src.gradient import gradient_image, cmaps_dict
 
 class FunelGraph():
@@ -201,11 +202,24 @@ class FunelGraph():
         #             **self.number_text_kwargs)
 
         # the texts:
+        # for stage, name in enumerate(self.data_dict['labels'][:-1]):
+        #     if stage == 0:
+        #         label_stage(ax, stage, name, self.first_column, self.data_dict['colors'] )
+        #     elif stage != 0:
+        #         label_stage(ax, stage, name, self.pcent_of_previous_stage[:,stage-1], self.data_dict['colors'])
+
+        # the texts:
         for stage, name in enumerate(self.data_dict['labels'][:-1]):
-            if stage == 0:
-                label_stage(ax, stage, name, self.first_column, self.data_dict['colors'] )
-            elif stage != 0:
-                label_stage(ax, stage, name, self.pcent_of_previous_stage[:,stage-1], self.data_dict['colors'])
+            cmap_arg = stage/len(self.data_dict['labels'][:-1])
+            label_stage(
+                ax=ax,
+                stage=stage,
+                label= name,
+                column_print_strategy=JustNumbers() if stage==0 else WithPercent(),
+                number_column=self.first_column if stage==0 else self.pcent_of_previous_stage[:,stage-1],
+                apply_colorQ= True,
+                cmap_list=self.data_dict['colors'],
+                cmap_arg=cmap_arg)
 
         ax.set_facecolor(background_color)
         # ax.get_xaxis().set_visible(False)
