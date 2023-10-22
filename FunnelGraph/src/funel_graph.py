@@ -1,91 +1,76 @@
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-# from matplotlib.path import Path
+# from matplotlib import path 
+from matplotlib.path import Path
 from matplotlib.patches import PathPatch
 
-from src.interpolating_function import inter_poly
+from src.funnelshape.interpolating_function import inter_poly
 from src.text.text import label_stage
-from src.text.text import JustNumbers, WithPercent
-from src.gradient import gradient_image, cmaps_dict
+from src.text.text import Just
+from src.gradient.gradient import gradient_image
+from src.dataloader.dataloader import pd_dataloader
 
+# to implement: pic_global["stage_width"], pic_global["funnel_height"] 
 class FunelGraph():
     def __init__(self, data_dict=None, path='data', pts=100):
         if data_dict is None:
             self.data_dict = {
+                'graph_data': None,
+                'data_labels':None,
+                'label_data': None,
                 'labels': None,
-                'colors': None,
-                'values': None
+                'colors': None
                 }
         self.pts = pts
-        self.names_mpl_cmaps = [item for row in cmaps_dict.values() for item in row]
-        # whadda You Know there is a list of known colormap names: matplotlib.colormaps()
-            
-    def load_data(self, file_name:str='data.csv'):
-        self.root = Path(__file__).parents[1]
-        data_path = self.root / 'data'
-
-        # load pandas dataframe
-        self.df:pd.DataFrame = pd.read_csv(
-            filepath_or_buffer=data_path/file_name, 
-            delimiter=';')
-        
-        # labels
-        if self.data_dict['labels'] is None:
-            self.data_dict['labels'] = self.df.columns.to_list()
-        
-        # numeric data
-        self.data_dict['values'] = self.df.to_numpy()
-        pass
+        self.names_mpl_cmaps = plt.colormaps()
     
-    def data_for_labels(self):
+    def load_data(self, df: pd.DataFrame):
+        self.data_dict['graph_data'] = df.to_numpy()
+        self.data_dict['data_labels'] = df.columns.to_list()
+    
+    def load_labels(self, df: pd.DataFrame):
+        self.data_dict['label_data'] = df.to_numpy().astype(str)
+        self.data_dict['labels'] = df.columns.to_list()
 
-        arr:np.ndarray = self.data_dict['values']
-        self.sums_of_stages = np.sum(a=arr, axis=0)
-        self.first_column = arr[:,0]
+    def normalize_data(self, normaliseQ:bool=True):
+        """ Fills object variables :
+                self.points_to_plot,
 
-        # perentage of previous stage
-        arr = arr.astype(np.float64)
-        next_arr = arr[:,1:]
-        curr_arr_recip = np.reciprocal(arr[:,:-1], where= arr[:,:-1]!=0)
-        self.pcent_of_previous_stage = (
-            np.multiply(next_arr, curr_arr_recip)[:,:-1]*100
-            ).astype(np.int8)
-
-        
-        # numbers for stage 0.
-         
-        # percentages for text in stage 1,2, ...
-
- 
-    def data_normalisation(self):
-        """ Creates guide for patches from self.data_dict['values'].
-            Variable self.points_to_plot stores Y values for the picture 
-            of size M by 1 through which consecutive patches will go.
-            The goal on this normalisation is to center the vertical intervals
-            in the center of the picture i.e. centers of vertical
-            intervals will be (k, 0.5) for k in integers from 0 to M.
+            Creates guide for patches from self.data_dict['graph_data'].
+            The goal of this normalisation is to rescale data volumes to fit (M,1) picture.
             Arguments:
-                self.data_dict['values'] volumes of categories in stages t0 draw.
-                    Each row is single category, each column is stage,
-                    there are M columns and N categories.
+                normaliseQ : True or False condition do we perform normalisation.
+                self.data_dict['graph_data'] : np.ndarray of shape (N, M) representing
+                    volumes of N categories in all of M stages.
             Result:
-                Result is written into self.points_to_plot.
-                Resulting array has shape (N+1, M).
-                First row of the resulting array are Y coordinates guiding 
-                the lowest line and successive rows guide lines following 
-                from the bottom up.
+                self.points_to_plot : np.ndarray of shape (N+1, M+1)
+                    Rows of the resulting array are Y coordinates guiding path 
+                    of consecutive points (i, *) for i in 0, 1, 2, ..., M+2.
+                    First row is the lowest path and successive rows guide lines following 
+                    from the bottom up.
             """
-        arr:np.ndarray = self.data_dict['values']
-        max_of_col_sums = np.max(np.sum(a=arr, axis=0))
-        cumsum = np.cumsum(np.flip(arr/max_of_col_sums,axis=0), axis=0)
-        # last row of cumsum has heights of stages
-        starting_level = 0.5-(cumsum[-1]/2) 
-        increments = np.tile(starting_level, reps=(cumsum.shape[0], 1)) + cumsum
-        self.points_to_plot = np.vstack((starting_level, increments))
+        def add_copy_of_last_column(arr):
+            """ We need to extend self.data_dict['graph_data'] of shape:(N, M)
+                by a copy of the last column to execute the following labeling strategy:
+                0 -> 1      is labeled with data from column 0
+                1 -> 2      is labeled with data from column 1
+                ...
+                m-2 -> m-1  is labeled with data from column m-2
+                m-1 -> m-1  is labeled with data from column m-1
+                """
+            return np.c_[arr, arr[:,-1]]
+        if normaliseQ is True:
+            arr:np.ndarray = add_copy_of_last_column(self.data_dict['graph_data'])
+            max_of_col_sums = np.max(np.sum(a=arr, axis=0))
+            cumsum = np.cumsum(np.flip(arr/max_of_col_sums,axis=0), axis=0)
+            # last row of cumsum has heights of stages
+            starting_levels = 0.5-(cumsum[-1]/2) 
+            increments = np.tile(starting_levels, reps=(cumsum.shape[0], 1)) + cumsum
+            self.points_to_plot = np.vstack((starting_levels, increments))
+        else:
+            self.points_to_plot = self.data_dict['graph_data']
     
     def create_paths(self):
         """ Paths are created in the following way:
@@ -95,19 +80,19 @@ class FunelGraph():
                  :
                  [yn0, y11, ..., ynm]],
             we produce first path: 
-             from first two rows by interpolating values:
+             from first two rows by interpolating graph_data:
                 from y00 to y01, then from y01 to  y02, ..., then from y0(m-1) to y0m
-             then concatenate the above with REVERSED interpolating values of:
+             then concatenate the above with REVERSED interpolating graph_data of:
                 from y10 to y11, then from y11 to  y12, ..., then from y1(m-1) to y1m
              make X coordinates by two copies of np.arrange(0, M, pts*m) one going forward
              the other REVERSED.
             Then make similar paths for the rest of pairs of rows (y1, y2), (y2, y3), ..., (y(n-1), yn).
         """
-        lines, stages = self.points_to_plot.shape
+        self.lines, self.stages = self.points_to_plot.shape
 
         # Create X coordinate array. Note: there are one less starting points than 'stages'.
         x = np.linspace(start=0, stop=1, num=self.pts) # for each stage
-        xx = np.hstack(tup=[ i + x for i in range(stages-1) ]) # for final path
+        xx = np.hstack(tup=[ i + x for i in range(self.stages-1) ]) # for final path
 
         self.paths = []
         for (base, top) in zip(self.points_to_plot[:-1], self.points_to_plot[1:]):
@@ -124,23 +109,26 @@ class FunelGraph():
             current_X_path = np.hstack(tup=(xx,np.flip(xx)))
             xy = np.vstack(tup=(current_X_path, current_Y_path))
             self.paths.append(xy)
+        self.paths.reverse()
 
-    def prepare(self, **kwargs):
-        self.load_data()
-        self.data_normalisation()
+    def prepare(self, data_path='data/data.csv', label_path='data/labels.csv', **kwargs):
+        self.load_data( pd_dataloader(path=data_path))
+        self.load_labels( pd_dataloader(path=label_path))
+        self.normalize_data(**kwargs)
         self.create_paths()
-        self.data_for_labels()
 
     def set_colors( self, 
                     colors=[
-                        ['#C33764', '#1BFFFF'],
-                        ['#FBB03B', '#D4145A'],
+                        ['#009245', '#FCEE21'],
+                        ['#1BFFFF', '#7678d4'],
                         ['#FCEE21', '#009245'],
-                        ['#1BFFFF', '#2E3192'],
-                        ['#009245', '#FCEE21']
-                    ]
+                        ['#FBB03B', '#D4145A'],
+                        ['#C33764', '#1BFFFF']
+                        ],
+                    **kwargs
         ):
-        """ Argument colors is a list with elements of the form:
+        """ Argument colors should be a list of elements, each element can be in the one 
+            of the following three possible formats:
                 - single string with color in hex or colorname eg:
                     '#393862', 'blue', or 'y'.
                 - single matplotlib colormap name eg:
@@ -150,101 +138,81 @@ class FunelGraph():
                 List of colors are passed to mpl.colors.LinearSegmentedColormap
                 to create colormap.
             """
-        
-        self.cmaps_for_patches = []
+        cmaps = []
             
         for i ,color in enumerate(colors):
-            if color in self.names_mpl_cmaps or (
-                color[:-2] in self.names_mpl_cmaps and color[-2:] == '_r'):
-                self.cmaps_for_patches.append(color)
+            if color in self.names_mpl_cmaps:
+                # matplotlib named colormaps
+                cmaps.append(color)
             elif isinstance(color, list):
-                self.cmaps_for_patches.append(
+                # list of named colors
+                cmaps.append(
                     mpl.colors.LinearSegmentedColormap.from_list(
                         'color_patch'+str(i), color, N=256, gamma=1.0)
                 )
-            else:
-                self.cmaps_for_patches.append(
+            else: # single color 
+                cmaps.append(
                     mpl.colors.LinearSegmentedColormap.from_list(
                         'color_patch'+str(i), [color, color], N=256, gamma=1.0)
                 )
-        self.data_dict['colors'] = self.cmaps_for_patches
-        self.cmaps_len = len(self.cmaps_for_patches)
+        self.data_dict['colors'] = cmaps
+        self.cmaps_len = len(cmaps)
 
-    def draw(self, background_color:str='#393862', **kwargs):
-        # my kind of blue #27557b
-        # nice purpleish #393862
-        self.set_colors(**kwargs)
+    def draw_graph(self):
+        num_of_colors = len(self.data_dict['colors'])
+        for path_number, np_path in enumerate(self.paths):
+            np_path:np.ndarray
 
-        lines, stages = self.points_to_plot.shape
+            # path:np.ndarray -> patch: mpl.patches.PathPatch to clip gradients from imshow
+            mpl_path = Path(np_path.T)
+            mpl_patch = PathPatch(mpl_path, facecolor='none', edgecolor='k', linewidth=0.1)
+            self.ax.add_patch(mpl_patch)
 
-        fig, ax = plt.subplots()
-        ax.set(xlim=(0, stages-1), ylim=(-0.05, 1.50))
-
-        # vertical guides
-        ax.vlines(np.arange(stages), -2, 2, colors='w', lw=0.5)
-        
-        # the texts
-        # for stage in range(stages-1):
-        #     # ax.text(stage+0.5, 1.4, self.data_dict['labels'][stage], **self.label_text_kwargs)
-            
-        #     left = stage + 0.05
-        #     top_for_name = 1.5 - 0.05
-        #     ax.text(left, top_for_name, 
-        #             self.data_dict['labels'][stage],
-        #             horizontalalignment='left',
-        #             verticalalignment='top',
-        #             **self.label_text_kwargs)
-            
-        #     top_for_numbers = 1.4 - 0.1
-        #     ax.text(left, top_for_numbers, 
-        #             str(self.sums_of_stages[stage]),
-        #             horizontalalignment='left',
-        #             verticalalignment='top',
-        #             **self.number_text_kwargs)
-
-        # the texts:
-        # for stage, name in enumerate(self.data_dict['labels'][:-1]):
-        #     if stage == 0:
-        #         label_stage(ax, stage, name, self.first_column, self.data_dict['colors'] )
-        #     elif stage != 0:
-        #         label_stage(ax, stage, name, self.pcent_of_previous_stage[:,stage-1], self.data_dict['colors'])
-
-        # the texts:
-        for stage, name in enumerate(self.data_dict['labels'][:-1]):
-            cmap_arg = stage/len(self.data_dict['labels'][:-1])
+            #drawing a gradient
+            gradient_image(
+                ax=self.ax, 
+                direction=1, 
+                cmap_range=(0, 1),
+                extent=(0, 1, 0, 1), 
+                transform=self.ax.transAxes,
+                cmap=self.data_dict['colors'][path_number % num_of_colors],
+                alpha=1,
+                clip_path=mpl_patch, 
+                clip_on=True
+                )
+    
+    def draw_labels(self, apply_colorQ:bool=False, **kwargs):
+        for stage, name in enumerate(self.data_dict['labels']):
+            cmap_arg = stage/(len(self.data_dict['labels'])-1)
             label_stage(
-                ax=ax,
+                ax=self.ax,
                 stage=stage,
-                label= name,
-                column_print_strategy=JustNumbers() if stage==0 else WithPercent(),
-                number_column=self.first_column if stage==0 else self.pcent_of_previous_stage[:,stage-1],
-                apply_colorQ= True,
+                label=name,
+                labels_column=self.data_dict['label_data'][:, stage],
+                parse_strategy=Just(),
+                apply_colorQ= apply_colorQ,
                 cmap_list=self.data_dict['colors'],
                 cmap_arg=cmap_arg)
 
-        ax.set_facecolor(background_color)
-        # ax.get_xaxis().set_visible(False)
-        # ax.get_yaxis().set_visible(False)
+    def draw_vertical_lines(self):
+        self.ax.vlines(np.arange(self.stages), -2, 2, colors='w', lw=0.5)
+        # return im
+    
+    def adjust_picture(self, 
+                       background_color:str='#393862', 
+                       aspect:float=(1 + 5 ** 0.5) / 2, 
+                       axesQ:bool=False, **kwargs):
+        self.ax.set_facecolor(background_color)
+        self.ax.set(xlim=(0, self.stages-1), ylim=(-0.01, 1.51))
+        self.ax.set_aspect(aspect)#(1 + 5 ** 0.5) / 2)
+        self.ax.get_xaxis().set_visible(axesQ)
+        self.ax.get_yaxis().set_visible(axesQ)
 
-        for path_no, path in enumerate(self.paths):
-            
-            # numpy arr -> matplotlib Patches on ax Axes
-            current_path = mpl.path.Path(path.T)
-            patch = PathPatch(current_path, facecolor='none', edgecolor='k', linewidth=0.1)
-            ax.add_patch(patch)
-
-                #drawing a gradient
-            im = gradient_image(
-                    ax, 
-                    direction=1, 
-                    cmap_range=(0.1, 0.9),
-                    extent=(0, 1, 0, 1), 
-                    transform=ax.transAxes,
-                    # cmap=mpl.colormaps[color],
-                    cmap=self.cmaps_for_patches[path_no % self.cmaps_len],
-                    alpha=1,
-                    clip_path=patch, 
-                    clip_on=True
-                    )
-        return im
-            
+    def draw(self, **kwargs):
+        self.set_colors(**kwargs)
+        self.fig, self.ax = plt.subplots()
+        self.draw_graph()
+        self.draw_labels(**kwargs)
+        self.draw_vertical_lines()
+        self.adjust_picture(**kwargs)
+        return self.ax
