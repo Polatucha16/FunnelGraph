@@ -70,20 +70,18 @@ def label_stage(
     box = Rectangle((x0, y0), width, height, fc="none", ec="none")
     ax.add_patch(box)
 
-    # drawing top label
+    # drawing top label, first place with <text> valiable
     label_gaps = {"box_gap": 0.02, "first_no_XY": (0, 0)}
     gap = label_gaps["box_gap"]
     text = ax.text(x0 + gap, y1 - gap, label, **text_stage_kwargs)
 
-    # the column of numbers
-    # string_list = np.char.mod("%d", number_column).tolist()
+    # the column of labels
     strings_to_annotate = parse_strategy.prepare_string_list(labels_column)
     
     # temporary storage of color default to numbers
     default_num_color = text_nums_kwargs["color"]
 
-    # first annotate below has horizontalalignment = 'left' relative to the text above
-    # the rest annotate have horizontalalignment = 'right', then digits of numbers match.
+    # annotate felative to previous <text> valiable
     for i, num_str in enumerate(strings_to_annotate):
         if apply_colorQ == True:
             text_nums_kwargs['color'] = cmap_list[i](cmap_arg)
