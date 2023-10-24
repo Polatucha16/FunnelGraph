@@ -31,6 +31,8 @@ def label_stage(
     apply_colorQ: bool,
     cmap_list: list,
     cmap_arg: float,
+    text_stage_kwargs:dict=text_stage_kwargs,
+    text_nums_kwargs:dict=text_nums_kwargs
 ):
     """Function puts labels and numbers to the stage,
     cell example:
@@ -67,7 +69,7 @@ def label_stage(
     x0, y0 = stage * pic_global["stage_width"], pic_global["funnel_height"]
     x1, y1 = (stage + 1) * pic_global["stage_width"], pic_global["picture_height"]
     width, height = x1 - x0, y1 - y0
-    box = Rectangle((x0, y0), width, height, fc="none", ec="none")
+    box = Rectangle((x0, y0), width, height, fc="none", ec="w")
     ax.add_patch(box)
 
     # drawing top label, first place with <text> valiable
@@ -130,5 +132,32 @@ def label_stage(
 #     "27 %", xycoords=text, xy=(1, 0), va="top", ha='right', **numbs_dict)
 # text = ax.annotate(
 #     "11 %", xycoords=text, xy=(1, 0), va="top",ha='right', **numbs_dict)
+# plt.show()
+
+# # look no further:
+# import matplotlib.pyplot as plt
+# from matplotlib.transforms import Affine2D
+# from matplotlib.textpath import TextPath
+# from matplotlib.font_manager import FontProperties
+# from matplotlib.patches import PathPatch
+
+# fig, ax = plt.subplots(3, dpi=100)
+# ax[0].set(xlim=(-0.2, 3.2), ylim=(-0.2, 1.2))
+# ax[1].set(xlim=(0.3, 0.6), ylim=(0.95, 1.05))
+# ax[2].set(xlim=(2.3, 2.9), ylim=(0.95, 1.05))
+
+# from matplotlib.font_manager import FontProperties
+
+# fp = FontProperties(family='serif')
+# for i in [0,1,2]:
+#     path = TextPath((0, 0), "ABC", size=1, prop=fp)
+#     p = PathPatch(path, facecolor='orange', lw=1)
+#     transform = Affine2D().scale(100/73)
+#     p.set_transform(transform+ax[i].transData)
+#     ax[i].add_patch(p)
+#     ax[i].set_aspect('equal')
+
+#     ax[i].hlines(y=[0,1], xmin=-1, xmax=4)
+
 # plt.show()
 
