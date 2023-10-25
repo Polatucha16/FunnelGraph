@@ -13,9 +13,6 @@ class ParseStrategy(ABC):
     def prepare_string_list(self, arr_of_labels: np.ndarray) -> List[str]:
         pass
 
-# :D można dodać argumenty do strategii np: 
-# -> argument justowania 
-# -> jaki symbol z prawej lub lambde przekształacającą liczbę
 class Just(ParseStrategy):
     def prepare_string_list(self, arr_of_labels: np.ndarray) -> List[str]:
         justing = np.vectorize(lambda string : string.rjust(3))
@@ -99,6 +96,10 @@ def label_stage(
 
     return text
 
+
+
+
+#region Examples Experiments
 # # text preview
 # import matplotlib.pyplot as plt
 # from matplotlib.patches import Rectangle
@@ -134,7 +135,7 @@ def label_stage(
 #     "11 %", xycoords=text, xy=(1, 0), va="top",ha='right', **numbs_dict)
 # plt.show()
 
-# # look no further:
+# # string 'ABC' as patches :
 # import matplotlib.pyplot as plt
 # from matplotlib.transforms import Affine2D
 # from matplotlib.textpath import TextPath
@@ -160,4 +161,4 @@ def label_stage(
 #     ax[i].hlines(y=[0,1], xmin=-1, xmax=4)
 
 # plt.show()
-
+#endregion
