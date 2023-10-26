@@ -1,4 +1,4 @@
-text_stage_kwargs = dict(
+title_kwargs = dict(
     size=15,
     color="tab:orange",
     va='top', ha='left',
@@ -6,9 +6,10 @@ text_stage_kwargs = dict(
     weight="bold",
     )
 
-text_nums_kwargs = dict(
+label_kwargs = dict(
     size=10,
-    color='#e3dac9', 
+    color='#e3dac9',
+    va='top', ha='left',
     weight='bold', 
     family='sans-serif'
     )

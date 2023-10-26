@@ -1,5 +1,4 @@
-Initial;Hold;Final;Afterlife
-50;10;10;5
-20;15;5;0
-70;50;15;5
-20;15;10;5
+Initial;Hold;Final
+50;10;10
+20;15;5
+70;20;5

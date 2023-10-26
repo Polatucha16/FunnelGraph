@@ -1,100 +1,92 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
+from matplotlib.axes import Axes
+from matplotlib.text import Annotation
+from matplotlib.transforms import Bbox
 
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Tuple
 
-from src.text.config import text_stage_kwargs, text_nums_kwargs
-from src.pictureconfig.config import pic_global
+from src.text.config import title_kwargs, label_kwargs
+from src.text.text_anchors import produce_anchors
+# from src.picture_config.config import picture_size
 
-class ParseStrategy(ABC):
-    @abstractmethod
-    def prepare_string_list(self, arr_of_labels: np.ndarray) -> List[str]:
-        pass
+def draw_lists_of_strings(
+    ax: Axes,
+    xy: Tuple[float,float],
+    width:float, 
+    height:float,
+    s_args:List[List[str]], 
+    rel_str:List[float]=[2, 1],
+    font_kwargs:List[dict]=[title_kwargs, label_kwargs],
+    visible = False,
+    **kwargs
+    ):
+    """ On axis ax, in the bounding box:
+            xy, width, height : parameters same as in matplotlib.patches.Rectangle
+        draw(use annotate) strings from:
+            s_args = [ titles:List[string], labels_0:List[string], labels_1:labels_0, ...]
+        with relative sizes:
+            rel_str = [titles_size:float, labels_0_size:float , labels_1_size:float, ...]
+        each with keyword arguments:
+            font_kwargs = [titles_annotate_kwargs:dict, labels_0_annotate_kwargs:dict, ...].
+        
+        visible: bool Set the rectangles artist's visibility
+        
 
-class Just(ParseStrategy):
-    def prepare_string_list(self, arr_of_labels: np.ndarray) -> List[str]:
-        justing = np.vectorize(lambda string : string.rjust(3))
-        result:np.ndarray = justing(arr_of_labels)
-        return result.tolist()
 
-def label_stage(
-    ax: plt.Axes,
-    stage: int,
-    label: str,
-    labels_column: np.ndarray,
-    parse_strategy: ParseStrategy,
-    apply_colorQ: bool,
-    cmap_list: list,
-    cmap_arg: float,
-    text_stage_kwargs:dict=text_stage_kwargs,
-    text_nums_kwargs:dict=text_nums_kwargs
-):
-    """Function puts labels and numbers to the stage,
-    cell example:
-        import numpy as np
-        import matplotlib as mpl
-        import matplotlib.pyplot as plt
-        from src.text.text import Just
-        from src.text.text import label_stage
-        fig, ax = plt.subplots()
-        ax.set_facecolor('#393862')
-        plt.xlim(0, 2)
-        plt.ylim(0, 1.5)
-        def foo(list):
-            return mpl.colors.LinearSegmentedColormap.from_list(
-                                'colormap', list, N=256, gamma=1.0)
-        color_map_list = list(
-            map(foo,[['w','r'], ['b','k'], ['r','b'], ['g','w']])
-            )
-        plt.xlim(0, 2)
-        plt.ylim(0, 1.5)
-        label_stage(
-            ax=ax,
-            stage=0,
-            label='Matplotlib',
-            parse_strategy=Just(),
-            labels_column=np.array([34,27,11,12]).astype(str),
-            apply_colorQ= True,
-            cmap_list=color_map_list,
-            cmap_arg=0.25)
-        plt.show()
+    Strings from <s_args>[i] are drawn with:
+            <rel_size>[i mod len(rel__size)] size
+            <font_kwargs>[i mod len(font_kwargs)] font kwargs
+        Use cell:
+            import matplotlib.pyplot as plt
+            from src.text.config import title_kwargs, label_kwargs
+            fig, ax = plt.subplots()
+            ax.set_facecolor('#393862')
+            ax.set(xlim=(-0.05,3),ylim=(-0.05, 1.55))
+            rel_str = [2, 1]
+            titles, labels = ['Title is'], ['twice', 'as big as','labels here']
+            s_args = [titles, labels]
+            font_kwargs = [title_kwargs, label_kwargs]
+            draw_lists_of_strings(ax, (0,1), 1, 0.5, s_args, rel_str, font_kwargs, visible=False)
+            plt.show()
     """
 
-    # patch for text
-    x0, y0 = stage * pic_global["stage_width"], pic_global["funnel_height"]
-    x1, y1 = (stage + 1) * pic_global["stage_width"], pic_global["picture_height"]
-    width, height = x1 - x0, y1 - y0
-    box = Rectangle((x0, y0), width, height, fc="none", ec="w")
-    ax.add_patch(box)
+    def get_scale(text:Annotation, rect:Rectangle):
+        rect_Bbox:Bbox = rect.get_window_extent()
+        text_Bbox:Bbox = text.get_window_extent()
+        scale = min(rect_Bbox.height / text_Bbox.height,
+                    rect_Bbox.width / text_Bbox.width)
+        return scale
+    # # sanity check:
+    # main_bounding_box = Rectangle(xy = xy, width=width, height=height, 
+    #                 fill=False, ec='r', lw=1 ,ls='--', visible=visible)
+    # ax.add_patch(main_bounding_box)
 
-    # drawing top label, first place with <text> valiable
-    label_gaps = {"box_gap": 0.02, "first_no_XY": (0, 0)}
-    gap = label_gaps["box_gap"]
-    text = ax.text(x0 + gap, y1 - gap, label, **text_stage_kwargs)
-
-    # the column of labels
-    strings_to_annotate = parse_strategy.prepare_string_list(labels_column)
-    
-    # temporary storage of color default to numbers
-    default_num_color = text_nums_kwargs["color"]
-
-    # annotate felative to previous <text> valiable
-    for i, num_str in enumerate(strings_to_annotate):
-        if apply_colorQ == True:
-            text_nums_kwargs['color'] = cmap_list[i](cmap_arg)
-        text = ax.annotate(
-            num_str,
-            xycoords=text,
-            xy=(0,0),#label_gaps['first_no_XY'] if i == 0 else (1, 0),
-            va='top',
-            ha='left' if i == 0 else 'left',
-            **text_nums_kwargs
-        )
-    text_nums_kwargs["color"] = default_num_color
-
-    return text
+    # draw from the top :
+    start, stop = xy[1] + height, xy[1] # => anchors holding Y cordinates will have [greater , lesser] order
+    assert len(s_args) == len(rel_str),\
+        f"lengths of s_args (it is {len(s_args)}) should be same as rel_str (it is {len(rel_str)})"
+    nums = list(map(len, s_args))
+    anchors = produce_anchors(start, stop, rel_str=rel_str, nums=nums)
+    for current_anchors, list_of_strings, text_kwargs in zip( anchors, s_args, font_kwargs):
+        annotations = []
+        scales = []
+        for anchor, string in zip(current_anchors, list_of_strings):
+            # print(f'string={string} between points {anchor}')
+            box = Rectangle(xy = (xy[0], anchor[1]), width=width, height = abs(anchor[0]-anchor[1]), 
+                    fill=False, ec=text_kwargs['color'], lw=0.5, ls='--', visible=visible)
+            box = ax.add_patch(box)
+            # text, xy, xytext=None, xycoords='data'
+            annotation = ax.annotate(text=string, xy=(0,1), xytext=(0,1), xycoords=box, **text_kwargs)#,xy=(xy[0], anchor[0])
+            annotations.append(annotation)
+            scales.append(get_scale(annotation, box))
+        scale = min(scales)
+        for i in range(len(scales)):
+            text:Annotation = annotations[i]
+            text.set_fontsize(text.get_fontsize() * scale)
+    return ax
 
 
 

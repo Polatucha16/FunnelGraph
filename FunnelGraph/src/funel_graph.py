@@ -6,9 +6,10 @@ from matplotlib.path import Path
 from matplotlib.patches import PathPatch
 
 from src.funnelshape.interpolating_function import inter_poly
-from src.text.text import label_stage, Just
+from src.text.text import draw_lists_of_strings  # label_stage, Just
 from src.gradient.gradient import gradient_image
 from src.dataloader.dataloader import pd_dataloader
+from src.picture_config.config import picture_size
 
 
 # to implement: pic_global["stage_width"], pic_global["funnel_height"]
@@ -54,11 +55,11 @@ class FunelGraph:
         def add_copy_of_last_column(arr):
             """We need to extend self.data_dict['graph_data'] of shape:(N, M)
             by a copy of the last column to execute the following labeling strategy:
-            0 -> 1      is labeled with data from column 0
-            1 -> 2      is labeled with data from column 1
-            ...
-            m-2 -> m-1  is labeled with data from column m-2
-            m-1 -> m-1  is labeled with data from column m-1
+                0 -> 1      is labeled with data from column 0
+                1 -> 2      is labeled with data from column 1
+                ...
+                m-2 -> m-1  is labeled with data from column m-2
+                m-1 -> m-1  is labeled with data from column m-1
             """
             return np.c_[arr, arr[:, -1]]
 
@@ -90,22 +91,23 @@ class FunelGraph:
         Then make similar paths for the rest of pairs of rows (y1, y2), (y2, y3), ..., (y(n-1), yn).
         """
         self.lines, self.stages = self.points_to_plot.shape
+        width = picture_size['stage_width']
 
         # Create X coordinate array. Note: there are one less starting points than 'stages'.
-        x = np.linspace(start=0, stop=1, num=self.pts)  # for each stage
-        xx = np.hstack(tup=[i + x for i in range(self.stages - 1)])  # for final path
+        x = np.linspace(start=0, stop=width, num=self.pts)  # for each stage
+        xx = np.hstack(tup=[i*width + x for i in range(self.stages - 1)])  # for final path
 
         self.paths = []
         for base, top in zip(self.points_to_plot[:-1], self.points_to_plot[1:]):
             base_zip = zip(base[:-1], base[1:])
             base_list_of_waves = [
-                inter_poly(x, parmaters=[0, v0, 1, v1]) for (v0, v1) in base_zip
+                inter_poly(x, parmaters=[0, v0, width, v1]) for (v0, v1) in base_zip
             ]
             base_wave = np.hstack(tup=base_list_of_waves)
 
             top_zip = zip(top[:-1], top[1:])
             top_list_of_waves = [
-                inter_poly(x, parmaters=[0, v0, 1, v1]) for (v0, v1) in top_zip
+                inter_poly(x, parmaters=[0, v0, width, v1]) for (v0, v1) in top_zip
             ]
             top_wave = np.hstack(tup=top_list_of_waves)
 
@@ -179,7 +181,7 @@ class FunelGraph:
             )
             self.ax.add_patch(mpl_patch)
 
-            # drawing a gradient
+            # drawing a gradient that will be visibile only on mpl_patch
             gradient_image(
                 ax=self.ax,
                 direction=1,
@@ -192,41 +194,51 @@ class FunelGraph:
                 clip_on=True,
             )
 
-    def draw_labels(self, apply_colorQ: bool = False, **kwargs):
-        for stage, name in enumerate(self.data_dict["labels"]):
-            cmap_arg = stage / (len(self.data_dict["labels"]) - 1)
-            label_stage(
+    def draw_labels(self, **kwargs):
+        for stage, title in enumerate(self.data_dict["labels"]):
+            s_args = []
+            first__list_of_strings = [title]
+            second_list_of_strings = list(self.data_dict["label_data"][:, stage])
+            s_args.append(first__list_of_strings)
+            s_args.append(second_list_of_strings)
+            # print(s_args) # noob debugging
+            draw_lists_of_strings(
                 ax=self.ax,
-                stage=stage,
-                label=name,
-                labels_column=self.data_dict["label_data"][:, stage],
-                parse_strategy=Just(),
-                apply_colorQ=apply_colorQ,
-                cmap_list=self.data_dict["colors"],
-                cmap_arg=cmap_arg,
+                xy=(stage*picture_size["stage_width"], picture_size["funnel_height"]),
+                width=picture_size["stage_width"],
+                height=picture_size["picture_height"] - picture_size["funnel_height"],
+                s_args=s_args,
+                **kwargs
             )
 
     def draw_vertical_lines(self):
-        self.ax.vlines(np.arange(self.stages), -2, 2, colors="w", lw=0.5)
+        self.ax.vlines(np.arange(self.stages)*picture_size['stage_width'], -2, 2, colors="w", lw=0.5)
 
     def adjust_picture(
         self,
         background_color: str = "#393862",
-        aspect: float = (1 + 5**0.5) / 2,
-        axesQ: bool = False,
+        aspect: float = 1,
+        axesQ: bool = True,
         **kwargs
     ):
         self.ax.set_facecolor(background_color)
-        self.ax.set(xlim=(0, self.stages - 1), ylim=(-0.01, 1.51))
-        self.ax.set_aspect(aspect)  # (1 + 5 ** 0.5) / 2)
+        self.fig.set_facecolor(background_color)
+        self.ax.set_frame_on(False)
+        self.ax.set(xlim=(0, (self.stages - 1)*picture_size['stage_width']), 
+                    ylim=(-0.01, picture_size['picture_height']))
+        # self.ax.axis('off')
+        self.ax.set_aspect(aspect)
         self.ax.get_xaxis().set_visible(axesQ)
         self.ax.get_yaxis().set_visible(axesQ)
 
     def draw(self, **kwargs):
         self.set_colors(**kwargs)
-        self.fig, self.ax = plt.subplots()
+        self.fig, self.ax = plt.subplots(
+            figsize=(
+                (self.stages - 1)*picture_size['stage_width']*picture_size['size'],
+                 picture_size['picture_height']*picture_size['size']))
+        self.adjust_picture(**kwargs)
         self.draw_graph()
         self.draw_labels(**kwargs)
         self.draw_vertical_lines()
-        self.adjust_picture(**kwargs)
         return self.ax
