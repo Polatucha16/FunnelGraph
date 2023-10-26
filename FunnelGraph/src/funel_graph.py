@@ -212,7 +212,8 @@ class FunelGraph:
             )
 
     def draw_vertical_lines(self):
-        self.ax.vlines(np.arange(self.stages)*picture_size['stage_width'], -2, 2, colors="w", lw=0.5)
+        self.ax.vlines(
+            np.arange(self.stages)*picture_size['stage_width'], -2, 2, colors="w", lw=0.5)
 
     def adjust_picture(
         self,
