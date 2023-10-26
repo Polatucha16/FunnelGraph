@@ -40,15 +40,15 @@ def produce_anchors(start: float, stop: float, rel_str: List[float], nums: List[
 
             from src.text.text_anchors import produce_anchors
             number_of_points = [1, 2, 1, 3, 1]
-            relative_weight = [5, 2, 5, 1, 5]
+            relative_weight = [5, 2, 3, 1, 5]
             start, stop = 0, 1
             anchors = produce_anchors(start, stop, relative_weight, number_of_points)
-            # for integer relative weights line below yields true integer labels for relative partition
-            labels = np.round(y*sum(np.array(relative_weight)*np.array(number_of_points))).astype(int)
 
             pts = np.vstack(anchors)
             y = np.hstack(tup=(pts[:,0], pts[-1,-1]))
             x = np.linspace(0,1,len(y))
+            # for integer relative weights line below yields true integer labels for relative partition
+            labels = np.round(y*sum(np.array(relative_weight)*np.array(number_of_points))).astype(int)
 
             eps = 0.05
             fig, ax = plt.subplots()
