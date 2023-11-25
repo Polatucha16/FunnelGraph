@@ -3,7 +3,7 @@ import pandas as pd
 
 def pd_dataloader(path:str, delimiter:str=';'):
     """ Call example:
-            from src.dataloader.dataloader import pd_dataloader
+            from graph.dataloader.dataloader import pd_dataloader
             df = pd_dataloader(path='data/labels.csv')
             df
         """

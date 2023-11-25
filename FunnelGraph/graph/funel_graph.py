@@ -5,11 +5,11 @@ import matplotlib.pyplot as plt
 from matplotlib.path import Path
 from matplotlib.patches import PathPatch
 
-from src.funnelshape.interpolating_function import inter_poly
-from src.text.text import draw_lists_of_strings  # label_stage, Just
-from src.gradient.gradient import gradient_image
-from src.dataloader.dataloader import pd_dataloader
-from src.picture_config.config import picture_size
+from text.draw_text import draw_lists_of_strings  # label_stage, Just
+from graph.funnelshape.interpolating_function import inter_poly
+from graph.gradient.gradient import gradient_image
+from graph.dataloader.dataloader import pd_dataloader
+from graph.picture_config.config import picture_size
 
 
 # to implement: pic_global["stage_width"], pic_global["funnel_height"]

@@ -39,7 +39,7 @@ def gradient_image(ax: plt.Axes, direction=0.5, cmap_range=(0, 1), **kwargs):
 
 # # cmaps_range vs. vmin, vmax of imshow
 # import matplotlib.pyplot as plt
-# from src.gradient.gradient import gradient_image
+# from graph.gradient.gradient import gradient_image
 # fig, ax = plt.subplots()
 # ax.set(xlim=(0, 1), ylim=(0, 1))
 # ax = gradient_image(ax, direction=1, cmap='Reds', cmap_range=(-5,5), vmin=-1, vmax=1)

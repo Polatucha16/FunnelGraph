@@ -1,6 +1,6 @@
 picture_size = {
-    'size' : 3,
+    'size' : 4,
     'picture_height' : 1.5,
     'funnel_height' : 1 ,
-    'stage_width': 1.5
+    'stage_width': 1.3
 }

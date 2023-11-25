@@ -37,17 +37,16 @@ def produce_anchors(start: float, stop: float, rel_str: List[float], nums: List[
         Example cell:
             import numpy as np
             import matplotlib.pyplot as plt
+            from text.text_anchors import produce_anchors
 
-            from src.text.text_anchors import produce_anchors
-            number_of_points = [1, 2, 1, 3, 1]
-            relative_weight = [5, 2, 3, 1, 5]
             start, stop = 0, 1
+            relative_weight = [5, 2, 3, 1, 5]
+            number_of_points = [1, 2, 1, 3, 1]
             anchors = produce_anchors(start, stop, relative_weight, number_of_points)
 
             pts = np.vstack(anchors)
             y = np.hstack(tup=(pts[:,0], pts[-1,-1]))
-            x = np.linspace(0,1,len(y))
-            # for integer relative weights line below yields true integer labels for relative partition
+            # for integer relative weights, line below yields true integer labels for relative partition
             labels = np.round(y*sum(np.array(relative_weight)*np.array(number_of_points))).astype(int)
 
             eps = 0.05
@@ -55,7 +54,7 @@ def produce_anchors(start: float, stop: float, rel_str: List[float], nums: List[
             ax.set(xlim=(0-eps,1+eps), ylim=(0-eps,1+eps), aspect='equal')
             ax.hlines(y, xmin=0, xmax=1, colors='k', lw=0.5)
             ax.vlines([0,1], ymin=0, ymax=1, colors='k', lw=0.5)
-            ax.set_yticks(ticks=y,labels=labels)
+            ax.set_yticks(ticks=y, labels=labels)
             ax.set_xticks(ticks=[0,1])
             plt.show()
                 """
