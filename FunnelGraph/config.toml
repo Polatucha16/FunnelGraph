@@ -1,0 +1,1 @@
+streamlit run funnel_app.py --server.enableXsrfProtection=false
